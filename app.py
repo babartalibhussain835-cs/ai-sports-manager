@@ -2,160 +2,126 @@ import streamlit as st
 import google.generativeai as genai
 import os
 
-# --- PAGE CONFIGURATION ---
+# --- 1. SET PAGE CONFIG ---
 st.set_page_config(
     page_title="AI Sports Tournament Manager",
     page_icon="🏆",
     layout="wide"
 )
 
-# --- CUSTOM CSS ---
+# --- 2. PREMIUM CSS (ULTRA MODERN LOOK) ---
 st.markdown("""
     <style>
-    .main-title {
-        font-size: 50px;
-        font-weight: 800;
-        background: -webkit-linear-gradient(#00d2ff, #3a7bd5);
+    /* Main Background with Dark Gradient */
+    .stApp {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: #f8fafc;
+    }
+    
+    /* Custom Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #1e293b !important;
+        border-right: 2px solid #38bdf8;
+    }
+
+    /* Professional Glassmorphism Cards */
+    .stAlert, .stMarkdown div[data-testid="stMarkdownContainer"] p {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        padding: 10px;
+    }
+
+    /* Titles */
+    h1 {
+        background: linear-gradient(90deg, #38bdf8, #818cf8);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        font-size: 3rem !important;
+        font-weight: 800 !important;
         text-align: center;
-        margin-bottom: 0px;
     }
-    .subtitle {
-        text-align: center;
-        color: #666;
-        font-size: 18px;
-        margin-bottom: 30px;
-    }
-    [data-testid="stSidebar"] {
-        background-color: #f8f9fa;
-        border-right: 1px solid #e0e0e0;
-    }
-    .stButton>button {
-        background: linear-gradient(to right, #00d2ff, #3a7bd5);
+
+    /* Animated Button */
+    div.stButton > button:first-child {
+        background: linear-gradient(90deg, #0ea5e9 0%, #6366f1 100%);
         color: white;
         border: none;
-        padding: 10px 24px;
-        border-radius: 8px;
+        padding: 15px 30px;
+        border-radius: 50px;
         font-weight: bold;
+        font-size: 20px;
+        width: 100%;
+        transition: all 0.4s ease;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    div.stButton > button:first-child:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(99, 102, 241, 0.4);
+        border: none;
+    }
+
+    /* Styling Inputs */
+    .stTextInput input, .stSelectbox div, .stNumberInput input {
+        border-radius: 10px !important;
+        border: 1px solid #334155 !important;
+        background-color: #1e293b !important;
+        color: white !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- SIDEBAR CONFIGURATION ---
-st.sidebar.header("⚙️ Tournament Settings")
+# --- 3. AI CONFIGURATION (FIXED MODEL) ---
+api_key = os.getenv("GEMINI_API_KEY")
+genai.configure(api_key=api_key)
 
-sport = st.sidebar.selectbox(
-    "Select Sport",
-    ["Badminton", "Chess", "Throwball", "Cricket", "Futsal", "Table Tennis"]
-)
+# Using the most stable model name for Cloud Run
+model = genai.GenerativeModel('gemini-1.5-flash-latest')
 
-participants = st.sidebar.number_input("Number of Participants/Teams", min_value=2, value=8)
-resources = st.sidebar.number_input("Available Resources (Courts/Boards/Grounds)", min_value=1, value=2)
-time_available = st.sidebar.number_input("Total Time Available (Hours)", min_value=0.5, value=4.0, step=0.5)
+# --- 4. APP LAYOUT ---
+st.write("<h1>🏆 AI SPORTS TOURNAMENT MASTER</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #94a3b8;'>Intelligently generating tournament formats, schedules, and rules.</p>", unsafe_allow_html=True)
+st.write("---")
 
-generate_btn = st.sidebar.button("👉 Generate Smart Tournament Plan", use_container_width=True)
+# Main Columns
+col1, col2 = st.columns([1, 2], gap="large")
 
-# --- APP HEADER ---
-st.markdown('<h1 class="main-title">AI Sports Tournament Manager</h1>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">Intelligently generating tournament formats, optimized match schedules, and fair rules using AI.</p>', unsafe_allow_html=True)
-st.divider()
+with col1:
+    st.markdown("### ⚙️ Settings")
+    t_name = st.text_input("Tournament Name", value="Champions Cup 2026")
+    sport = st.selectbox("Sport Category", ["Cricket", "Football", "Badminton", "Chess", "Basketball", "Esports"])
+    teams = st.number_input("Total Teams", min_value=2, max_value=64, value=8)
+    
+    generate_btn = st.button("Generate Plan ✨")
 
-# --- HELPER FUNCTIONS & LOGIC ---
-def get_suggested_format(p_count):
-    if p_count <= 8:
-        return "Single Elimination Knockout"
-    elif 9 <= p_count <= 20:
-        return "Round Robin"
+with col2:
+    st.markdown("### 📋 AI Generated Plan")
+    if generate_btn:
+        if not api_key:
+            st.error("Error: API Key is missing. Add it to Cloud Run Environment Variables.")
+        else:
+            with st.spinner("AI is crafting your tournament strategy..."):
+                try:
+                    prompt = f"""
+                    As an expert Sports Manager, create a detailed tournament plan for '{t_name}'.
+                    Sport: {sport}
+                    Teams: {teams}
+                    Include:
+                    1. Tournament Format (Knockout/Round Robin)
+                    2. Match Schedule (Day by Day)
+                    3. Basic Rules & Fair Play Guidelines
+                    4. A short motivational quote for the athletes.
+                    Format the output nicely using bullet points.
+                    """
+                    response = model.generate_content(prompt)
+                    st.success("Your plan is ready!")
+                    st.markdown(response.text)
+                except Exception as e:
+                    st.error(f"Something went wrong: {str(e)}")
     else:
-        return "Swiss System"
+        st.info("Fill in the details on the left and hit the magic button!")
 
-def call_gemini_ai(sport, participants, resources, time, suggested_format):
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        st.error("Missing Gemini API Key. Please set the GEMINI_API_KEY environment variable.")
-        return None
-
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    
-    prompt = f"""
-    Act as a professional sports tournament director. 
-    Create a tournament plan for a {sport} tournament.
-    - Participants: {participants}
-    - Resources: {resources} (e.g. courts/tables)
-    - Time Limit: {time} hours
-    - Suggested Primary Format: {suggested_format}
-
-    Output the response in exactly these 3 sections without markdown code blocks:
-
-    SECTION 1: Tournament Format Recommendation
-    Explain why this format is optimal for {participants} participants and {resources} resources within {time} hours.
-
-    SECTION 2: Optimized Match Schedule
-    Provide a detailed table or list with time slots, resource allocation, and parallel match logic. Ensure maximum efficiency and minimum idle time.
-
-    SECTION 3: Tournament Rules
-    Provide 3 simple, clear, and fair rules for this tournament.
-    """
-    
-    try:
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        st.error(f"AI Generation Error: {str(e)}")
-        return None
-
-# --- MAIN LOGIC ---
-if generate_btn:
-    # Validation
-    if participants < 2 or resources < 1 or time_available <= 0:
-        st.warning("Please provide valid tournament parameters in the sidebar.")
-    else:
-        suggested_fmt = get_suggested_format(participants)
-        
-        with st.spinner("AI is crafting the perfect tournament schedule... Please wait ⏳"):
-            ai_output = call_gemini_ai(sport, participants, resources, time_available, suggested_fmt)
-            
-            if ai_output:
-                st.session_state['result'] = ai_output
-                st.session_state['inputs'] = {
-                    "sport": sport,
-                    "teams": participants,
-                    "hours": time_available,
-                    "resources": resources
-                }
-                st.success("Tournament Plan Generated Successfully! 🎉")
-
-# --- DISPLAY RESULTS ---
-if 'result' in st.session_state:
-    res = st.session_state['inputs']
-    
-    # Dashboard Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Sport", res['sport'])
-    col2.metric("Total Teams/Players", res['teams'])
-    col3.metric("Time Limit", f"{res['hours']} hrs")
-    col4.metric("Resources", res['resources'])
-    
-    st.divider()
-    
-    raw_text = st.session_state['result']
-    sections = raw_text.split("SECTION")
-    
-    # Section 1: Format
-    if len(sections) > 1:
-        st.subheader("🏆 Tournament Format Recommendation")
-        st.info(sections[1].replace("1:", "").strip())
-        
-    # Section 2: Schedule
-    if len(sections) > 2:
-        st.subheader("📅 Optimized Match Schedule")
-        st.write(sections[2].replace("2:", "").strip())
-        
-    # Section 3: Rules
-    if len(sections) > 3:
-        with st.expander("📜 View Tournament Rules"):
-            st.write(sections[3].replace("3:", "").strip())
-else:
-    st.info("Configure the tournament details in the sidebar and click 'Generate' to begin.")
+# --- FOOTER ---
+st.write("---")
+st.markdown(f"<p style='text-align: center; color: #64748b;'>Built with ❤️ by <b>Talib Hussain</b> | IU Student Project</p>", unsafe_allow_html=True)
