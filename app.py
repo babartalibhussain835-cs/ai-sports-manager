@@ -2,126 +2,96 @@ import streamlit as st
 import google.generativeai as genai
 import os
 
-# --- 1. SET PAGE CONFIG ---
-st.set_page_config(
-    page_title="AI Sports Tournament Manager",
-    page_icon="🏆",
-    layout="wide"
-)
+st.set_page_config(page_title="Pro Sports Planner", page_icon="🏟️", layout="wide")
 
-# --- 2. PREMIUM CSS (ULTRA MODERN LOOK) ---
+# --- PRO SPORTS UI/UX ---
 st.markdown("""
     <style>
-    /* Main Background with Dark Gradient */
     .stApp {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        background: linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)), 
+                    url('https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80');
+        background-size: cover;
         color: #f8fafc;
     }
     
-    /* Custom Sidebar */
-    [data-testid="stSidebar"] {
-        background-color: #1e293b !important;
-        border-right: 2px solid #38bdf8;
+    /* Result Glass Card */
+    .plan-card {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(56, 189, 248, 0.5);
+        padding: 30px;
+        border-radius: 20px;
+        color: #f1f5f9;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
     }
 
-    /* Professional Glassmorphism Cards */
-    .stAlert, .stMarkdown div[data-testid="stMarkdownContainer"] p {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 15px;
-        padding: 10px;
-    }
-
-    /* Titles */
+    /* Neon Accents */
     h1 {
-        background: linear-gradient(90deg, #38bdf8, #818cf8);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 3rem !important;
-        font-weight: 800 !important;
-        text-align: center;
-    }
-
-    /* Animated Button */
-    div.stButton > button:first-child {
-        background: linear-gradient(90deg, #0ea5e9 0%, #6366f1 100%);
-        color: white;
-        border: none;
-        padding: 15px 30px;
-        border-radius: 50px;
-        font-weight: bold;
-        font-size: 20px;
-        width: 100%;
-        transition: all 0.4s ease;
+        color: #22c55e !important; /* Sports Green */
         text-transform: uppercase;
-        letter-spacing: 2px;
+        letter-spacing: 3px;
+        text-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
     }
 
-    div.stButton > button:first-child:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(99, 102, 241, 0.4);
-        border: none;
-    }
-
-    /* Styling Inputs */
-    .stTextInput input, .stSelectbox div, .stNumberInput input {
+    /* Action Button */
+    div.stButton > button:first-child {
+        background: #22c55e !important;
+        color: #000 !important;
+        border: none !important;
+        font-weight: 900 !important;
+        height: 60px;
         border-radius: 10px !important;
-        border: 1px solid #334155 !important;
-        background-color: #1e293b !important;
-        color: white !important;
+        transition: 0.4s ease;
+    }
+    
+    div.stButton > button:first-child:hover {
+        background: #4ade80 !important;
+        transform: scale(1.02);
+        box-shadow: 0 0 25px rgba(34, 197, 94, 0.6);
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. AI CONFIGURATION (FIXED MODEL) ---
+# --- CONFIG ---
 api_key = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
-# Using the most stable model name for Cloud Run
-model = genai.GenerativeModel('gemini-1.5-flash-latest')
+# --- APP ---
+st.write("<h1 style='text-align: center;'>🏟️ ARENA MASTER AI</h1>", unsafe_allow_html=True)
 
-# --- 4. APP LAYOUT ---
-st.write("<h1>🏆 AI SPORTS TOURNAMENT MASTER</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #94a3b8;'>Intelligently generating tournament formats, schedules, and rules.</p>", unsafe_allow_html=True)
-st.write("---")
-
-# Main Columns
-col1, col2 = st.columns([1, 2], gap="large")
+col1, col2 = st.columns([1, 1.5], gap="large")
 
 with col1:
-    st.markdown("### ⚙️ Settings")
-    t_name = st.text_input("Tournament Name", value="Champions Cup 2026")
-    sport = st.selectbox("Sport Category", ["Cricket", "Football", "Badminton", "Chess", "Basketball", "Esports"])
-    teams = st.number_input("Total Teams", min_value=2, max_value=64, value=8)
+    st.markdown("### 🏟️ Tournament Hub")
+    t_name = st.text_input("Tournament Name", "Iqra Premier League")
+    sport = st.selectbox("Sport Type", ["Cricket", "Football", "Badminton", "Chess", "Table Tennis"])
+    teams = st.number_input("Total Teams", 2, 32, 8)
     
-    generate_btn = st.button("Generate Plan ✨")
+    st.info("💡 AI will auto-assign Courts and Timings.")
+    btn = st.button("READY TO PLAY? 🚀")
 
 with col2:
-    st.markdown("### 📋 AI Generated Plan")
-    if generate_btn:
-        if not api_key:
-            st.error("Error: API Key is missing. Add it to Cloud Run Environment Variables.")
-        else:
-            with st.spinner("AI is crafting your tournament strategy..."):
-                try:
-                    prompt = f"""
-                    As an expert Sports Manager, create a detailed tournament plan for '{t_name}'.
-                    Sport: {sport}
-                    Teams: {teams}
-                    Include:
-                    1. Tournament Format (Knockout/Round Robin)
-                    2. Match Schedule (Day by Day)
-                    3. Basic Rules & Fair Play Guidelines
-                    4. A short motivational quote for the athletes.
-                    Format the output nicely using bullet points.
-                    """
-                    response = model.generate_content(prompt)
-                    st.success("Your plan is ready!")
-                    st.markdown(response.text)
-                except Exception as e:
-                    st.error(f"Something went wrong: {str(e)}")
+    st.markdown("### 📅 Match Schedule & Ground Info")
+    if btn:
+        with st.spinner("Assigning Courts and Timings..."):
+            try:
+                # Optimized prompt for Timings and Courts
+                prompt = f"""
+                Create a professional {sport} tournament plan for '{t_name}' with {teams} teams.
+                IMPORTANT: 
+                - Assign specific Court Numbers or Ground Sections for each match.
+                - Provide exact Start and End Timings for each slot.
+                - Format as a clean schedule list.
+                - End with a 'Referee Guidelines' section.
+                """
+                response = model.generate_content(prompt)
+                st.markdown(f'<div class="plan-card">{response.text}</div>', unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Error: {e}")
     else:
-        st.info("Fill in the details on the left and hit the magic button!")
+        st.write("---")
+        st.caption("Enter details and generate to see the Arena Map.")
 
-# --- FOOTER ---
 st.write("---")
-st.markdown(f"<p style='text-align: center; color: #64748b;'>Built with ❤️ by <b>Talib Hussain</b> | IU Student Project</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; opacity: 0.6;'>Developer: Talib Hussain | IU Sports Tech</p>", unsafe_allow_html=True)
