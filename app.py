@@ -2,120 +2,105 @@ import streamlit as st
 import google.generativeai as genai
 import os
 
-st.set_page_config(page_title="Elite Arena AI", page_icon="🏟️", layout="wide")
+st.set_page_config(page_title="AI Sports Manager", page_icon="🏟️", layout="wide")
 
-# --- ADVANCED UI/UX STYLING ---
+# --- CUSTOM UI/UX ---
 st.markdown("""
     <style>
     .stApp {
-        background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), 
-                    url('https://images.unsplash.com/photo-1504450758481-7338eba7524a?auto=format&fit=crop&w=1920&q=80');
+        background: linear-gradient(rgba(10, 15, 30, 0.85), rgba(10, 15, 30, 0.85)), 
+                    url('https://images.unsplash.com/photo-1504450758481-7338eba7524a?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80');
         background-size: cover;
         color: #ffffff;
     }
     
-    /* Glassmorphism Effect */
-    .stTextInput, .stSelectbox, .stNumberInput {
-        background: rgba(255, 255, 255, 0.05) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 12px !important;
-        color: white !important;
+    /* Branding Header */
+    .brand-header {
+        text-align: center;
+        padding: 20px;
+        background: rgba(34, 197, 94, 0.1);
+        border-radius: 20px;
+        border: 1px dashed #22c55e;
+        margin-bottom: 30px;
     }
 
     .plan-card {
         background: rgba(15, 23, 42, 0.9);
-        border-left: 5px solid #00ff88;
+        border-left: 5px solid #22c55e;
         padding: 25px;
         border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.6);
     }
 
-    h1 {
-        background: -webkit-linear-gradient(#00ff88, #00bdff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 3.5rem !important;
-        font-weight: 900 !important;
-        text-align: center;
-    }
-
-    /* Professional Glow Button */
+    h1 { color: #22c55e !important; font-size: 3rem !important; margin-bottom: 0px !important; }
+    h3 { color: #38bdf8 !important; }
+    
     div.stButton > button:first-child {
-        background: linear-gradient(45deg, #00ff88, #00bdff) !important;
-        color: #000 !important;
-        font-weight: bold !important;
-        border: none !important;
-        padding: 15px !important;
+        background: linear-gradient(90deg, #22c55e, #16a34a) !important;
+        color: white !important;
+        font-weight: 800 !important;
+        height: 55px;
+        width: 100%;
         border-radius: 50px !important;
-        box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
-        transition: 0.3s ease;
-    }
-
-    div.stButton > button:first-child:hover {
-        box-shadow: 0 0 40px rgba(0, 255, 136, 0.7);
-        transform: translateY(-3px);
+        border: none !important;
+        text-transform: uppercase;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- CONFIG (STABLE VERSION) ---
+# --- AI CONFIG ---
 api_key = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel(model_name="models/gemini-1.5-flash")
 
-# --- HEADER ---
-st.write("<h1>ELITE ARENA AI</h1>", unsafe_allow_html=True)
-st.write("<p style='text-align: center; font-size: 1.2rem; color: #aaa;'>Powered by Gemini AI | Designed by Talib Hussain</p>", unsafe_allow_html=True)
-st.write("---")
+def generate_ai_plan(t_name, sport, teams, venue):
+    # Try multiple models to bypass the 404 issue
+    for m_name in ["gemini-1.5-flash", "models/gemini-1.5-flash", "gemini-pro"]:
+        try:
+            model = genai.GenerativeModel(m_name)
+            prompt = f"""
+            System: You are the 'AI SPORTS MANAGER'. 
+            Task: Create a tournament plan for '{t_name}' at '{venue}'.
+            Sport: {sport} | Teams: {teams}
+            
+            Format:
+            1. ARENA ALLOCATION: Assign specific Court/Pitch numbers.
+            2. TIME SLOTS: Provide exact match timings (e.g., 10:00 AM - 11:00 AM).
+            3. FIXTURES: List the matches clearly.
+            4. MANAGER'S NOTE: A professional tip for the event.
+            """
+            response = model.generate_content(prompt)
+            return response.text
+        except: continue
+    return "Error: Connecting to AI Manager failed."
 
-# --- MAIN INTERFACE ---
+# --- MAIN APP INTERFACE ---
+st.markdown("""
+    <div class="brand-header">
+        <h1>AI SPORTS MANAGER</h1>
+        <p style='color: #38bdf8; font-weight: bold; font-size: 1.2rem;'>🏟️ ARENA COMMAND CENTER</p>
+    </div>
+    """, unsafe_allow_html=True)
+
 col1, col2 = st.columns([1, 1.8], gap="large")
 
 with col1:
-    st.markdown("### 🏆 Tournament Command Center")
-    t_name = st.text_input("Tournament Name", "Iqra Champions League")
-    
-    c1, c2 = st.columns(2)
-    with c1:
-        sport = st.selectbox("Sport", ["Cricket", "Football", "Badminton", "Chess", "Basketball"])
-    with c2:
-        t_style = st.selectbox("Style", ["Knockout", "League (Round Robin)", "Group Stage + Finals"])
-        
+    st.markdown("### ⚙️ Setup Hub")
+    t_name = st.text_input("Project / Tournament Name", "Iqra Champions League")
+    venue = st.text_input("Venue / Ground Name", "Main University Sports Complex")
+    sport = st.selectbox("Sport Category", ["Cricket", "Football", "Badminton", "Chess", "Tennis"])
     teams = st.number_input("Total Teams", 2, 64, 8)
     
-    st.markdown("#### 🏟️ Venue Details")
-    venue = st.text_input("Ground/Court Location", "Main University Sports Complex")
-    
     st.write("")
-    generate_btn = st.button("GENERATE ELITE PLAN ⚡")
+    generate_btn = st.button("Deploy AI Manager 🚀")
 
 with col2:
-    st.markdown("### 🏟️ Live Generated Arena Map")
+    st.markdown("### 📊 Live Generated Arena Map")
     if generate_btn:
-        with st.spinner("AI is analyzing teams and venue slots..."):
-            try:
-                prompt = f"""
-                You are a world-class Sports Manager. 
-                Create a professional {t_style} tournament plan for '{t_name}'.
-                Sport: {sport}
-                Teams: {teams}
-                Location: {venue}
-                
-                Requirements:
-                1. Match-by-match schedule with Time Slots.
-                2. Specific Court/Ground assignments.
-                3. A special section for 'Match Officials & Rules'.
-                4. A weather-specific venue advisory for the players.
-                Format everything with clean headings and bullet points.
-                """
-                response = model.generate_content(prompt)
-                st.markdown(f'<div class="plan-card">{response.text}</div>', unsafe_allow_html=True)
-                st.balloons() # Thora jashan bhi ho jaye!
-            except Exception as e:
-                st.error(f"Error: {e}")
+        with st.spinner("AI Manager is calculating arena slots..."):
+            result = generate_ai_plan(t_name, sport, teams, venue)
+            st.markdown(f'<div class="plan-card">{result}</div>', unsafe_allow_html=True)
     else:
-        st.info("👈 Enter tournament details on the left to activate AI Planner.")
+        st.info("Fill the details and click 'Deploy' to see the AI Sports Manager in action.")
 
 st.write("---")
-st.caption("Iqra University Project | © 2026 Talib Hussain")
+st.markdown("<p style='text-align: center; opacity: 0.5;'>Talib Hussain | Computer Science Student | IU Project</p>", unsafe_allow_html=True)
