@@ -2,140 +2,80 @@ import streamlit as st
 import google.generativeai as genai
 import os
 
-# --- 1. PAGE CONFIG ---
-st.set_page_config(page_title="AI Sports Manager Pro", page_icon="🏆", layout="wide")
+# Page Settings
+st.set_page_config(page_title="AI Arena Manager", page_icon="🏆", layout="wide")
 
-# --- 2. ELITE DASHBOARD UI ---
+# UI Styling
 st.markdown("""
     <style>
-    /* Dark Theme with Contrast */
-    .stApp {
-        background-color: #0b0f19;
-        color: #f8fafc;
-    }
-    
-    /* Input Field Styling - For readability */
-    .stTextInput input, .stSelectbox div, .stNumberInput input {
-        background-color: #161b22 !important;
-        color: #22c55e !important;
-        border: 1px solid #30363d !important;
-        border-radius: 10px !important;
-        font-weight: bold;
-    }
-
-    /* Green Labels */
-    label p {
-        color: #22c55e !important;
-        font-weight: 800 !important;
-        text-transform: uppercase;
-        font-size: 0.9rem !important;
-        letter-spacing: 1px;
-    }
-
-    /* Header Branding */
-    .header-container {
+    .stApp { background-color: #0e1117; color: white; }
+    .header-style {
         text-align: center;
-        padding: 40px;
-        background: linear-gradient(90deg, #0f172a, #1e293b);
-        border-radius: 20px;
-        border: 2px solid #22c55e;
-        margin-bottom: 30px;
-        box-shadow: 0 10px 30px rgba(34, 197, 94, 0.2);
-    }
-
-    .header-container h1 {
-        color: #22c55e !important;
-        font-size: 3.5rem !important;
-        margin-bottom: 5px !important;
-    }
-
-    /* Result Arena Box */
-    .arena-box {
-        background: #161b22;
-        border: 1px solid #30363d;
-        border-left: 5px solid #22c55e;
         padding: 30px;
+        background-color: #1a1c24;
         border-radius: 15px;
-        color: #e6edf3;
-        font-family: 'Courier New', monospace;
+        border: 2px solid #22c55e;
+        margin-bottom: 25px;
     }
-
-    /* Pro Button */
+    .stTextInput input, .stSelectbox div, .stNumberInput input {
+        background-color: #262730 !important;
+        color: #22c55e !important;
+        border: 1px solid #444 !important;
+    }
+    label p { color: #22c55e !important; font-weight: bold !important; font-size: 1.1rem !important; }
+    .result-card {
+        background-color: #1a1c24;
+        border-left: 10px solid #22c55e;
+        padding: 25px;
+        border-radius: 10px;
+    }
     div.stButton > button:first-child {
-        background: #22c55e !important;
-        color: #000 !important;
-        font-size: 1.2rem !important;
+        background-color: #22c55e !important;
+        color: black !important;
         font-weight: 900 !important;
-        height: 60px;
-        border-radius: 12px;
-        border: none;
-        transition: 0.3s;
-    }
-    
-    div.stButton > button:first-child:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 5px 20px rgba(34, 197, 94, 0.5);
+        height: 55px;
+        width: 100%;
+        border-radius: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. AI ARENA LOGIC ---
+# AI Setup
 api_key = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
 
-def generate_arena_map(t_name, venue, sport, teams):
-    # Stabilized model calling
-    model_list = ["gemini-1.5-flash", "gemini-pro"]
-    for m_name in model_list:
+def get_response(prompt):
+    # Multiple model fallback for 100% success
+    for m in ["gemini-1.5-flash", "gemini-pro"]:
         try:
-            model = genai.GenerativeModel(m_name)
-            prompt = f"""
-            As an AI Sports Manager, generate a professional Arena Plan.
-            Tournament: {t_name}
-            Venue: {venue}
-            Sport: {sport} | Teams: {teams}
-            
-            Structure:
-            1. ARENA ALLOCATION (Court/Ground Nos)
-            2. MASTER SCHEDULE (Exact Time Slots)
-            3. MANAGER'S RULES (Fair Play & Venue Conduct)
-            
-            Be precise with timings and ground assignments.
-            """
-            response = model.generate_content(prompt)
-            return response.text
-        except:
-            continue
-    return "Error: AI System currently unavailable. Please check API settings."
+            model = genai.GenerativeModel(m)
+            return model.generate_content(prompt).text
+        except: continue
+    return "Error: AI not responding. Check API key."
 
-# --- 4. INTERFACE ---
-st.markdown("""
-    <div class="header-container">
-        <h1>AI SPORTS MANAGER</h1>
-        <p style='color: #38bdf8; font-weight: bold;'>ARENA COMMAND & CONTROL CENTER</p>
-    </div>
-    """, unsafe_allow_html=True)
+# Header
+st.markdown("<div class='header-style'><h1>🏆 AI SPORTS ARENA MANAGER</h1><p>The Ultimate Tournament Command Center</p></div>", unsafe_allow_html=True)
 
-left, right = st.columns([1, 1.6], gap="large")
+left, right = st.columns([1, 1.5], gap="large")
 
 with left:
-    st.markdown("### ⚙️ SETUP HUB")
-    project_name = st.text_input("PROJECT / TOURNAMENT NAME", value="Iqra Champions Cup")
-    ground_name = st.text_input("VENUE NAME", value="Main University Complex")
-    sport_type = st.selectbox("SPORT CATEGORY", ["Cricket", "Football", "Badminton", "Tennis", "Chess"])
-    team_count = st.number_input("TOTAL TEAMS", 2, 64, 8)
+    st.subheader("📋 SETTINGS")
+    t_name = st.text_input("TOURNAMENT NAME", "Iqra Champions Cup")
+    venue = st.text_input("VENUE / GROUND NAME", "Main Sports Complex")
+    sport = st.selectbox("SPORT CATEGORY", ["Cricket", "Football", "Badminton", "Tennis", "Chess"])
+    teams = st.number_input("TOTAL TEAMS", 2, 64, 8)
     
     st.write("---")
-    if st.button("GENERATE TOURNAMENT ARENA ✨"):
-        with st.spinner("AI is calculating arena slots..."):
-            st.session_state.plan = generate_arena_map(project_name, ground_name, sport_type, team_count)
-    
+    if st.button("GENERATE ARENA PLAN ✨"):
+        prompt = f"Create a tournament schedule for {t_name} at {venue}. Sport: {sport}, Teams: {teams}. Assign Court/Ground numbers and exact time slots."
+        st.session_state.arena_plan = get_response(prompt)
+
 with right:
-    st.markdown("### 📋 GENERATED ARENA MAP")
-    if 'plan' in st.session_state:
-        st.markdown(f'<div class="arena-box">{st.session_state.plan}</div>', unsafe_allow_html=True)
+    st.subheader("🏟️ GENERATED ARENA MAP")
+    if 'arena_plan' in st.session_state:
+        st.markdown(f"<div class='result-card'>{st.session_state.arena_plan}</div>", unsafe_allow_html=True)
     else:
-        st.info("Input settings and click Generate to see the Arena Command Map.")
+        st.info("Fill the details and generate your professional plan.")
 
 st.write("---")
-st.markdown("<p style='text-align: center; opacity: 0.5;'>Talib Hussain | Computer Science Student | IU FINAL PROJECT</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; opacity: 0.5;'>Talib Hussain | CS Student | Iqra University Project</p>", unsafe_allow_html=True)
